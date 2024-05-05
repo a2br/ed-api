@@ -32,7 +32,7 @@ export class Session {
 	}
 
 	async login(
-		A2FResponses: A2FReplies | null,
+		A2FResponses: A2FReplies | undefined,
 		context: Record<string, unknown> = {}
 	): Promise<Family | Staff | Student | Teacher> {
 		const { _username: username, _password: password } = this;
