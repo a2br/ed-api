@@ -1,5 +1,5 @@
 import { loginRes, isFailure } from "ecoledirecte-api-types/v3";
-import { getMainAccount, login } from "./util";
+import { A2FReplies, decodeBase64, encodeBase64, getA2FQCM, getMainAccount, login, postA2FRes } from "./util";
 import { Family, Staff, Student, Teacher } from "./accounts";
 import { EcoleDirecteAPIError } from "./errors";
 import logs from "./events";
@@ -32,14 +32,40 @@ export class Session {
 	}
 
 	async login(
+		A2FResponses: A2FReplies | null,
 		context: Record<string, unknown> = {}
 	): Promise<Family | Staff | Student | Teacher> {
 		const { _username: username, _password: password } = this;
-		const loginRes = await login(username, password, context);
+		let loginRes = await login(username, password, null, context);
 
-		this.loginRes = loginRes;
-		this.token = loginRes.token;
-		if (isFailure(loginRes)) throw new EcoleDirecteAPIError(loginRes);
+		if (loginRes.code == 250) {
+
+			const A2FQCM = await getA2FQCM(loginRes.token, context);
+
+			if (isFailure(A2FQCM)) throw new EcoleDirecteAPIError(A2FQCM); 
+
+			const question = decodeBase64(A2FQCM.data.question);
+			 
+			if (!A2FResponses) throw new Error("A2F needed");
+			if (typeof A2FResponses[question] != 'string') throw new Error(`A2F needed for the question : ${question}`);
+
+			const A2Ffa = await postA2FRes(loginRes.token, encodeBase64(A2FResponses[question]), context);
+
+			if (isFailure(A2Ffa)) throw new EcoleDirecteAPIError(A2Ffa); 
+
+			const finalLogin = await login(username, password, [ A2Ffa.data ], context);
+
+			if (isFailure(finalLogin) || finalLogin.code != 200) throw new EcoleDirecteAPIError(finalLogin);
+
+			loginRes = finalLogin
+			this.token = finalLogin.token;
+			this.loginRes = finalLogin;
+
+		} else {
+			this.loginRes = loginRes;
+			this.token = loginRes.token;
+			if (isFailure(loginRes)) throw new EcoleDirecteAPIError(loginRes);
+		}
 
 		// Login succeeded
 
