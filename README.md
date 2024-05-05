@@ -18,8 +18,17 @@ import { Session } from "ecoledirecte.js";
 // Create a new Session.
 const session = new Session("identifiant", "motdepasse");
 
+// If you need A2F 
+
+// A2F objet
+const A2FParams = {
+	"question": "answer",
+	"What is your day of birth ?": "25"
+	// ...
+};
+
 // Bring your session to life!
-const account = await session.login().catch(err => {
+const account = await session.login(/* A2FParams */).catch(err => {
 	console.error("This login did not go well.");
 });
 

@@ -1,11 +1,23 @@
 import fetch, { RequestInit } from "node-fetch";
 import mime from "mime-types";
-import { failureRes, isFailure, root, rootp } from "ecoledirecte-api-types/v3";
+import { base64, failureRes, isFailure, root, rootp } from "ecoledirecte-api-types/v3";
 
 import logs from "../events";
 import { EcoleDirecteAPIError } from "../errors";
 import EventEmitter from "events";
 import { Account } from "../accounts";
+
+export type A2FReplies = { [utf8_sentence: string]: string }
+
+export function decodeBase64(str: base64) {
+    const binaryStrBuffer = Buffer.from(str, 'base64');
+    return binaryStrBuffer.toString('utf8');
+}
+
+export function encodeBase64(str: string) {
+	const utf8Buffer = Buffer.from(str, 'utf-8');
+    return utf8Buffer.toString('base64');
+}
 
 export function toISODate(date: Date | string | number): string {
 	const d = new Date(date);
